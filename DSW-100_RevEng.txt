@@ -1,0 +1,171 @@
+PTCPU01.PCB
+
+PIC16F1937 TQFP44
+ID2380
+conf: 
+3FE2   1 1 1 11 1 1 1 1 00 010
+  FOSC 2 HS
+  WDT disabled
+  PWRT disabled
+  MCLRE ON
+  CP disabled
+  CPD disabled
+  BOR enabled
+  CLKOUT disabled
+  IESO enabled
+  FCMEN enabled
+3733   1 1 0 1 1 1 00 11 00 11
+  WRT write protection off
+  VCAPEN no cap
+  PLLEN 4xPLL enabled
+  STVREN Stack Overflow or Underflow will cause a Reset
+  BORV 1.9V
+  DEBUG disabled
+  LVP on
+
+SIP1
+1	MCLR	18
+2		20???
+3       GND
+4	ICSPDAT 17
+5       ICSPCLK	16
+
+
+RF module
+JH-5VWW
+FMD
+B1SYOME
+
+
+PIC16F1937 TQFP44
+1
+2	RD4		U6.1		CH
+3	RD5		CONN.18	        BL
+4	RD6		CONN.15		CL
+5	RD7		CONN.19		AL
+6
+7	VDD		W1..W5 ref
+8
+9	RB1		T2 FSO		out
+10	RB2		K.4		closing force
+11	RB3		K.3		colision avoidance
+
+12
+13
+14	RB4		K.1		left/right door sel
+15	RB5		K.2		slave mode
+16	ICSPCLK		SIP1.5
+17	ICSPDAT		SIP1.4
+18	MCLR		SIP1.1
+19	RA0		W5		hold open time
+20	RA1		W3		closing speed
+21	RA2		W2		opening buffer angle
+22	RA3		W1		opening speed
+
+23	RA4		OPT MJ		door open trg
+24	RA5		W4		closing buffer angle
+25      RE0		OPT OSP		in
+26	RE1		OPT OSP		in
+27	RE2		OPT SEN		in sensor signal
+28
+29
+30
+31
+32	RC0		T1	out (door sync)
+33
+
+34
+35	RC1		T3	relay
+36      RC2		U6.(2,5,10) (out) PWM???
+37	RC3		U10	FSI (in)
+38
+39	RD1		U8	dual door sync in
+40	RD2		U6.4	AH
+41      RD3		U6.9	BH
+42	RC4		U7.8	HC
+43	RC5		U7.12	HB
+44	RC6		U7.10	HA
+
+
+T5 buzzer
+
+
+U6
+74hc08			PIC
+1			2  RD4
+2	2,5,10		36 RC2
+3
+4			40 RD2
+5	2,5,10
+6
+7	GND
+8
+9        		41 RD3
+10	2,5,10
+11
+12	VPP
+13	VPP
+14	VPP
+
+U7
+74hc14d			PIC
+1
+2			8
+3	VPP
+4			
+5
+6
+7	GND
+8
+9
+10
+11
+12
+13
+14	VPP
+
+CONN
+1
+2
+3		GND
+4		GND
+5		5V
+6		5V
+7					7,8,13,14
+8					7,8,13,14
+9		U7.11->10 RC6		HA(stepper)
+10		U7.9->8	  RC4		HC(stepper)
+11					
+12              U7.13->12 RC5           HB(stepper)
+13		short 14
+14		short 13
+15		PIC.4	RD6		U2.3 Lin		c
+16		U6.8(9,10) RD3		U4.2 Hin EG3013		B
+17		U6.3(1,2) RD4		U2.2 Hin		C
+18		PIC.3   RD5		U4.3 Lin EG3013		b
+19		PIC.5	RD7		U3.3 Lin		a
+20		U6.6(4,5) RD2		U3.2 Hin		A
+
+
+
+RF -> U11 -> Diode -> MJ
+
+=================================================================
+        AL CL BL CH BH AH
+A8	1  0  1  0  1  0  00	cB	Bc	1 
+C4	1  1  0  0  0  1  00	bA	Ab      2
+A4	1  0  1  0  0  1  00	cA	Ac      3
+70	0  1  1  1  0  0  00	aC	Ca      4
+68	0  1  1  0  1  0  00    aB	Ba      5
+D0	1  1  0  1  0  0  00    bC	Cb      6
+					
+00 
+        AL BL CL  AH BH CH 
+	0  0  1   0  1  0	cB		
+	0  1  0   1  0  0	bA
+	0  0  1   1  0  0	cA
+	1  0  0   0  0  1	aC
+	1  0  0   0  1  0	aB
+	0  1  0   0  0  1	bC
+
+============
