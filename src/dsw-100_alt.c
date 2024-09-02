@@ -291,11 +291,8 @@ int drive(char direction, unsigned int steps)
       if(DSW_K1) hall_sensor_state = 7 - hall_sensor_state;
       if(direction) hall_sensor_state = 7 - hall_sensor_state;
       PORTD = hall2phase[hall_sensor_state];
-      timer1_start_44ms();
       nsteps++;
-    }
-    else
-    {
+
       if(check_point)
       {
         if(nsteps < check_point)		//accel
@@ -319,11 +316,14 @@ int drive(char direction, unsigned int steps)
       {
         pwm_tmp = get_adc(DSW_ADC_W5) >> 2;
       }
-
       if(pwm_tmp < pwm_min) pwm_tmp = pwm_min;
       set_pwm(pwm_tmp);
 
-      if(TMR1IF || (steps && nsteps >= steps) || nsteps >= 4000)
+      timer1_start_44ms();
+    }
+    else
+    {
+      if(TMR1IF || (nsteps >> 12))
       {
         break;
       }
@@ -363,7 +363,6 @@ int check_for_event(void)
   {
     if(!DSW_MJ)
     {
-//      while(DSW_DEBUG_TRG);
       return EVENT_MJ;
     }
     hs = PORTC & (7 << 4);
@@ -386,29 +385,31 @@ void stabilize(void)
   }
 }
 
+#define DOOR_STATE_THRESHOLD	110
+
 void main(void)
 {
-  int nsteps, steps, door_state, state, evt;
+  int nsteps, whole_way, position, door_state, state, evt;
   
   init();
 
-  steps = EEPROM_READ(0);
-  steps |= (EEPROM_READ(1) << 8);
+  whole_way = EEPROM_READ(0);
+  whole_way |= (EEPROM_READ(1) << 8);
 
-  if(DSW_K4 || steps == ~0)		//setup
+  if(DSW_K4 || whole_way == ~0)		//setup
   {
-    steps = 0;
+    whole_way = 0;
     nsteps = drive(DOOR_OPEN, 0);
-    if(steps < nsteps) steps = nsteps;
+    if(whole_way < nsteps) whole_way = nsteps;
     stabilize();
     nsteps = drive(DOOR_CLOSE, 0);
-    if(steps < nsteps) steps = nsteps;
+    if(whole_way < nsteps) whole_way = nsteps;
     stabilize();
     nsteps = drive(DOOR_OPEN, 0);
-    if(steps < nsteps) steps = nsteps;
+    if(whole_way < nsteps) whole_way = nsteps;
     
-    EEPROM_WRITE(0, steps & 0xff);
-    EEPROM_WRITE(1, (steps >> 8) & 0xff);
+    EEPROM_WRITE(0, whole_way & 0xff);
+    EEPROM_WRITE(1, (whole_way >> 8) & 0xff);
     
     while(DSW_K4)
     {
@@ -419,11 +420,12 @@ void main(void)
 
   stabilize();
   
-  steps = EEPROM_READ(0);
-  steps |= (EEPROM_READ(1) << 8);
+  whole_way = EEPROM_READ(0);
+  whole_way |= (EEPROM_READ(1) << 8);
 
   door_state = DOOR_STATE_UNKNOWN;
   state = STATE_IDLE;
+  position = 0;
   while(1)
   {
     switch(state)
@@ -436,25 +438,50 @@ void main(void)
        }
        break;
       case STATE_CLOSE:
-       nsteps = drive(DOOR_CLOSE, (door_state == DOOR_STATE_UNKNOWN) ? 0 : (unsigned int) steps);
-       if((steps - nsteps) > 128)
+       nsteps = position - 0;
+       if(door_state == DOOR_STATE_UNKNOWN)
+       {
+         nsteps = 0;		//drive it slowly
+         position = 0;
+       }
+       nsteps = drive(DOOR_CLOSE, (unsigned int) nsteps);
+       position -= nsteps;
+       if(position > DOOR_STATE_THRESHOLD)
        {
          //collision detected, reopen
-         nsteps = drive(DOOR_OPEN, (unsigned int) nsteps);
-         DSW_RELAY = 0;
-         door_state = DOOR_STATE_OPENED;
+         door_state = DOOR_STATE_CLOSED;
+         state = STATE_OPEN;
        }
        else
        {
+         position = 0;
          DSW_RELAY = 1;
          door_state = DOOR_STATE_CLOSED;
+         state = STATE_STABILIZE;
        }
-       state = STATE_STABILIZE;
        break;
       case STATE_OPEN:
        DSW_RELAY = 0;
-       nsteps = drive(DOOR_OPEN, (door_state == DOOR_STATE_UNKNOWN) ? 0 : (unsigned int) steps);
-       door_state = DOOR_STATE_OPENED;
+       nsteps = whole_way - position;
+       if(door_state == DOOR_STATE_UNKNOWN)
+       {
+         nsteps = 0;		//drive it slowly
+         position = 0;
+       }
+
+       nsteps = drive(DOOR_OPEN, (unsigned int) nsteps);
+       position += nsteps;
+       if((whole_way - position) > DOOR_STATE_THRESHOLD && 
+          door_state != DOOR_STATE_UNKNOWN)
+       {
+         //collision detected
+         door_state = DOOR_STATE_UNKNOWN;
+       }
+       else
+       {
+         door_state = DOOR_STATE_OPENED;
+         position = whole_way;
+       }
        state = STATE_STABILIZE;
        break;
       case STATE_STABILIZE:
