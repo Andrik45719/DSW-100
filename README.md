@@ -9,3 +9,5 @@
  - [manual open test video](./pix/door_manual_open_test.MOV)
 ## Programming interface
 ![mounted](./pix/pickit2_conn.jpg)
+## Reverse engineering
+Research [DSW-100_RevEng.txt](./DSW-100_RevEng.txt)
