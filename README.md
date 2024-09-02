@@ -1,4 +1,6 @@
 # Custom firmware for DSW-100 door driver.
+[Aliexpress 1](https://www.aliexpress.com/item/32809374253.html)
+[Aliexpress 2](https://www.aliexpress.com/item/32809374253.html)
 ## Goals:
  - safe closing
  - manual open/close using handle
